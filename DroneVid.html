@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->
+    <meta name="description" content="">
+    <meta name="author" content="">
+    <link rel="icon" href="favicon/favicon.ico">
+
+    <title>Video Feed</title>
+    <style>
+    .video {
+      width: 100%;
+      height: 100%;
+      float: left;
+    }
+    .label {
+      height: 18px;
+      width: 100%;
+      margin-left:20px;
+      background-color:rgba(0, 0, 255, .1);
+    }
+    </style>
+  </head>
+  <body>
+    <div id="droneStream" class="video"></div>
+    <div id="dataBlock"></div>
+    <button onclick="demo()">Demo</button>
+    <script src="/jquery/jquery.min.js"></script>
+    <script src="/dronestream/nodecopter-client.js"></script>
+    <script>
+      // video canvas will auto-size to the DOM-node, or default to 640*360 if no size is set.
+      new NodecopterStream(document.getElementById("droneStream"));
+
+      function demo(){
+        console.log("sending demo");
+        $.get("/demo", function(data,status){
+          console.log(status);
+        });
+      }
+
+      var dataSocket = new WebSocket('ws://localhost:3000');
+      dataSocket.onerror = function(err){
+        console.log(err);
+      };
+      dataSocket.onmessage = function(msg){
+        var data = JSON.parse(msg.data);
+        $("#dataBlock").empty();
+        addDisplay($("#dataBlock"),"navdata",data,600);
+        //$("#dataBlock").html(data);
+      };
+
+      function addDisplay(parent, key, obj, width){
+      var height = 0;
+      var block = 18;
+      var label = $("<div></div>");
+      label.addClass("label");
+      label.css({width:width});
+      if(obj == null){
+        label.html(key+": "+JSON.stringify(obj));
+        height = block;
+      }else if(typeof obj === 'object'){
+        label.html(key+":");
+        height=block;
+        for(childkey in obj){
+          height += addDisplay(label, childkey, obj[childkey], width-20);
+        }
+        heightpx=height.toString()+"px";
+        label.css({height:heightpx});
+      }else{
+        label.html(key+": "+JSON.stringify(obj));
+        height = block;
+      }
+      label.on("click",function(evt){
+        evt.stopPropagation();
+        $(this).detach();
+        /*var curr = $(this);
+        var rem = curr.css("height");
+        rem = rem.substring(0,rem.length-2);
+        rem = parseInt(rem);
+        console.log(curr.closest(".label"));
+        while(curr.closest(".label").hasClass("label")){
+          console.log("shortening");
+          curr = curr.closest(".label");
+          var th = curr.css("height");
+          th = th.substring(0,th.length-2);
+          th = parseInt(th);
+          th = th - rem;
+          th = th.toString+"px";
+          curr.css({height:th});
+        }*/
+      });
+      parent.append(label);
+      return height;
+     }
+    </script>
+  </body>
+</html>
